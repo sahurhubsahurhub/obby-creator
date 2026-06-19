@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Best Creator In Obby Creator</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Trebuchet MS', sans-serif;
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      color: white;
+      overflow: hidden;
+    }
+
+    h1 {
+      font-size: 48px;
+      text-shadow: 0 0 15px rgba(255,255,255,0.7);
+      margin-bottom: 30px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0); }
+    }
+
+    #rollBtn {
+      padding: 15px 40px;
+      font-size: 22px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: linear-gradient(90deg, #ff8a00, #e52e71);
+      color: white;
+      box-shadow: 0 0 20px rgba(255,255,255,0.4);
+      transition: 0.2s;
+    }
+
+    #rollBtn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px rgba(255,255,255,0.7);
+    }
+
+    #result {
+      margin-top: 40px;
+      font-size: 40px;
+      font-weight: bold;
+      text-shadow: 0 0 20px rgba(255,255,255,0.8);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Particle burst */
+    .burst {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: burstAnim 0.8s ease-out forwards;
+    }
+
+    @keyframes burstAnim {
+      from { transform: translate(0,0) scale(1); opacity: 1; }
+      to { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Best Creator In Obby Creator</h1>
+
+  <button id="rollBtn">ROLL</button>
+
+  <div id="result">abcdefg</div>
+
+  <script>
+    const result = document.getElementById("result");
+    const rollBtn = document.getElementById("rollBtn");
+
+    const names = [
+      "foxyras",
+      "transported13",
+      "XYZcreeper",
+      "bibbo123011",
+      "d1sweat",
+      "jero",
+      "doom_e10"
+    ];
+
+    rollBtn.addEventListener("click", () => {
+      rollAnimation();
+      particleBurst();
+    });
+
+    function rollAnimation() {
+      let index = 0;
+      result.style.opacity = 1;
+
+      const interval = setInterval(() => {
+        result.textContent = names[index];
+        index = (index + 1) % names.length;
+      }, 120);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        result.textContent = "abcdefg"; // ALWAYS lands on this
+      }, 1500);
+    }
+
+    function particleBurst() {
+      for (let i = 0; i < 30; i++) {
+        const p = document.createElement("div");
+        p.classList.add("burst");
+
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 80 + Math.random() * 40;
+
+        p.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+        p.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+
+        p.style.left = (window.innerWidth / 2) + "px";
+        p.style.top = (window.innerHeight / 2) + "px";
+
+        document.body.appendChild(p);
+
+        setTimeout(() => p.remove(), 800);
+      }
+    }
+  </script>
+
+</body>
+</html>
