@@ -32,7 +32,7 @@
       100% { transform: translateY(0); }
     }
 
-    #chanceDisplay, #rankDisplay, #rollCountDisplay, #multiplierDisplay {
+    #chanceDisplay, #rankDisplay, #rollCountDisplay, #multiplierDisplay, #coinDisplay {
       font-size: 22px;
       margin-bottom: 10px;
       opacity: 0.9;
@@ -45,7 +45,7 @@
       height: 22px;
     }
 
-    #rollBtn, #prestigeBtn {
+    #rollBtn, #traitBtn, #prestigeBtn {
       padding: 15px 40px;
       font-size: 22px;
       border: none;
@@ -55,7 +55,7 @@
       color: white;
       box-shadow: 0 0 20px rgba(255,255,255,0.4);
       transition: 0.2s;
-      margin-top: 10px;
+      margin: 5px;
     }
 
     #rollBtn:disabled {
@@ -66,6 +66,7 @@
     }
 
     #rollBtn:hover:not(:disabled),
+    #traitBtn:hover,
     #prestigeBtn:hover {
       transform: scale(1.1);
       box-shadow: 0 0 30px rgba(255,255,255,0.7);
@@ -74,6 +75,12 @@
     #prestigeBtn {
       display: none;
       background: linear-gradient(90deg, #00ff9d, #00c2ff);
+    }
+
+    #traitBtn {
+      background: linear-gradient(90deg, #d4af37, #f7d774);
+      color: black;
+      font-weight: bold;
     }
 
     #result {
@@ -94,6 +101,36 @@
       filter: drop-shadow(0 0 15px rgba(255,255,255,0.7));
     }
 
+    /* FAIL TEXT ABOVE TITLE */
+    #failText {
+      position: absolute;
+      top: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 60px;
+      font-weight: bold;
+      color: white;
+      opacity: 0;
+      text-shadow: 0 0 25px rgba(255,255,255,0.9);
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    /* SUCCESS TEXT */
+    #successText {
+      position: absolute;
+      top: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 60px;
+      font-weight: bold;
+      color: gold;
+      opacity: 0;
+      text-shadow: 0 0 25px gold;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
     /* Burst particles */
     .burst {
       position: absolute;
@@ -108,6 +145,21 @@
     @keyframes burstAnim {
       from { transform: translate(0,0) scale(1); opacity: 1; }
       to { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+    }
+
+    /* SUCCESS CONFETTI */
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: gold;
+      border-radius: 2px;
+      animation: confettiFall 1s ease-out forwards;
+    }
+
+    @keyframes confettiFall {
+      from { opacity: 1; transform: translateY(0) rotate(0deg); }
+      to { opacity: 0; transform: translateY(150px) rotate(360deg); }
     }
 
     /* FAIL EFFECTS */
@@ -127,20 +179,52 @@
       background: linear-gradient(135deg, #ff0000, #8b0000) !important;
     }
 
-#failText {
-  position: absolute;
-  top: 5%;                 /* ABOVE the title */
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 60px;
-  font-weight: bold;
-  color: white;            /* white text as requested */
-  opacity: 0;
-  text-shadow: 0 0 25px rgba(255,255,255,0.9);
-  transition: opacity 0.3s;
-  pointer-events: none;
-}
+    .successFlash {
+      background: linear-gradient(135deg, #ffd700, #ffea8a) !important;
+    }
 
+    /* GOLD MODAL */
+    #traitModal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 420px;
+      background: linear-gradient(180deg, #f7d774, #d4af37);
+      border: 4px solid #b8860b;
+      border-radius: 15px;
+      padding: 25px;
+      display: none;
+      box-shadow: 0 0 40px gold;
+      color: black;
+      text-align: center;
+      z-index: 999;
+    }
+
+    #closeModal {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 28px;
+      cursor: pointer;
+      color: black;
+    }
+
+    #traitRollBtn {
+      margin-top: 20px;
+      padding: 12px 30px;
+      font-size: 20px;
+      border: none;
+      border-radius: 10px;
+      background: black;
+      color: gold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #traitRollBtn:hover {
+      transform: scale(1.1);
+    }
   </style>
 </head>
 
@@ -150,201 +234,294 @@
 
   <div id="rankDisplay">Rank: Beginner</div>
   <div id="rollCountDisplay">Rolls: 0</div>
+  <div id="coinDisplay">Coins: 0</div>
   <div id="chanceDisplay">Chance to NOT get abcdefg: <b>0.00%</b></div>
   <div id="multiplierDisplay">Multiplier: 1x</div>
 
-  <button id="rollBtn">ROLL</button>
+  <div>
+    <button id="rollBtn">ROLL</button>
+    <button id="traitBtn">TRAIT SHOP</button>
+  </div>
+
   <button id="prestigeBtn">PRESTIGE</button>
 
   <div id="cooldownDisplay"></div>
 
-  <div id="result">abcdefg the GOAT</div>
+  <div id="result">abcdefg</div>
 
   <img id="popupImg" src="https://i.imgur.com/dmmXw48.png" />
 
   <div id="failText">FAILED ROLL!</div>
+  <div id="successText">SUCCESS!</div>
 
-  <script>
-    const result = document.getElementById("result");
-    const rollBtn = document.getElementById("rollBtn");
-    const prestigeBtn = document.getElementById("prestigeBtn");
-    const popupImg = document.getElementById("popupImg");
-    const chanceDisplay = document.getElementById("chanceDisplay");
-    const cooldownDisplay = document.getElementById("cooldownDisplay");
-    const rankDisplay = document.getElementById("rankDisplay");
-    const rollCountDisplay = document.getElementById("rollCountDisplay");
-    const multiplierDisplay = document.getElementById("multiplierDisplay");
-    const failText = document.getElementById("failText");
+  <!-- TRAIT SHOP MODAL -->
+  <div id="traitModal">
+    <div id="closeModal">×</div>
+    <h2 style="margin-top: 0;">Trait Shop</h2>
+    <p><b>Current Trait:</b> <span id="currentTrait">None</span></p>
+    <p><b>Coins:</b> <span id="modalCoins">0</span></p>
+    <p><b>Cost to Roll:</b> 50 coins</p>
 
-    let failChance = parseFloat(localStorage.getItem("failChance")) || 0;
-    let rolls = parseInt(localStorage.getItem("rolls")) || 0;
-    let rank = localStorage.getItem("rank") || "Beginner";
-    let multiplier = parseFloat(localStorage.getItem("multiplier")) || 1;
+    <h3>Trait Odds</h3>
+    <p>Weak Luck (1.1×) — 50%</p>
+    <p>Good Luck (1.3×) — 30%</p>
+    <p>Great Luck (1.6×) — 15%</p>
+    <p>Insane Luck (2.0×) — 5%</p>
+    <p>Godlike Luck (3.0×) — 1%</p>
 
-    const cooldownTime = 3;
-    let cooldown = false;
+    <button id="traitRollBtn">Roll Trait</button>
+  </div>
 
-    const rankData = [
-      { name: "Beginner", rolls: 0, gain: 0.01 },
-      { name: "Bronze", rolls: 50, gain: 0.02 },
-      { name: "Silver", rolls: 150, gain: 0.03 },
-      { name: "Gold", rolls: 300, gain: 0.05 },
-      { name: "Diamond", rolls: 600, gain: 0.10 },
-      { name: "Mythic", rolls: 1000, gain: 0.20 }
-    ];
+<script>
+/* ===========================
+   INITIAL DATA + LOCALSTORAGE
+   =========================== */
 
-    function updateRank() {
-      for (let i = rankData.length - 1; i >= 0; i--) {
-        if (rolls >= rankData[i].rolls) {
-          rank = rankData[i].name;
-          break;
-        }
-      }
-      rankDisplay.textContent = "Rank: " + rank;
-      localStorage.setItem("rank", rank);
+let failChance = parseFloat(localStorage.getItem("failChance")) || 0;
+let rolls = parseInt(localStorage.getItem("rolls")) || 0;
+let rank = localStorage.getItem("rank") || "Beginner";
+let coins = parseInt(localStorage.getItem("coins")) || 0;
+let prestigeMultiplier = parseFloat(localStorage.getItem("prestigeMultiplier")) || 1;
+let traitMultiplier = parseFloat(localStorage.getItem("traitMultiplier")) || 1;
+let currentTrait = localStorage.getItem("currentTrait") || "None";
+
+const cooldownTime = 3;
+let cooldown = false;
+
+/* ===========================
+   RANK DATA
+   =========================== */
+
+const rankData = [
+  { name: "Beginner", rolls: 0, gain: 0.01 },
+  { name: "Bronze", rolls: 50, gain: 0.02 },
+  { name: "Silver", rolls: 150, gain: 0.03 },
+  { name: "Gold", rolls: 300, gain: 0.05 },
+  { name: "Diamond", rolls: 600, gain: 0.10 },
+  { name: "Mythic", rolls: 1000, gain: 0.20 }
+];
+
+/* ===========================
+   TRAIT DATA (WEIGHTED)
+   =========================== */
+
+const traits = [
+  { name: "Weak Luck", mult: 1.1, weight: 50 },
+  { name: "Good Luck", mult: 1.3, weight: 30 },
+  { name: "Great Luck", mult: 1.6, weight: 15 },
+  { name: "Insane Luck", mult: 2.0, weight: 5 },
+  { name: "Godlike Luck", mult: 3.0, weight: 1 }
+];
+
+/* ===========================
+   NAME RNG (WEIGHTED)
+   =========================== */
+
+const names = [
+  { name: "foxyras", weight: 50 },
+  { name: "transported13", weight: 30 },
+  { name: "XYZcreeper", weight: 15 },
+  { name: "bibbo123011", weight: 10 },
+  { name: "d1sweat", weight: 5 },
+  { name: "jero", weight: 3 },
+  { name: "doom_e10", weight: 1 }
+];
+
+/* ===========================
+   UI ELEMENTS
+   =========================== */
+
+const result = document.getElementById("result");
+const rollBtn = document.getElementById("rollBtn");
+const traitBtn = document.getElementById("traitBtn");
+const prestigeBtn = document.getElementById("prestigeBtn");
+const popupImg = document.getElementById("popupImg");
+const chanceDisplay = document.getElementById("chanceDisplay");
+const cooldownDisplay = document.getElementById("cooldownDisplay");
+const rankDisplay = document.getElementById("rankDisplay");
+const rollCountDisplay = document.getElementById("rollCountDisplay");
+const multiplierDisplay = document.getElementById("multiplierDisplay");
+const coinDisplay = document.getElementById("coinDisplay");
+const failText = document.getElementById("failText");
+const successText = document.getElementById("successText");
+
+const traitModal = document.getElementById("traitModal");
+const closeModal = document.getElementById("closeModal");
+const currentTraitDisplay = document.getElementById("currentTrait");
+const modalCoins = document.getElementById("modalCoins");
+const traitRollBtn = document.getElementById("traitRollBtn");
+
+/* ===========================
+   FUNCTIONS
+   =========================== */
+
+function updateRank() {
+  for (let i = rankData.length - 1; i >= 0; i--) {
+    if (rolls >= rankData[i].rolls) {
+      rank = rankData[i].name;
+      break;
+    }
+  }
+  rankDisplay.textContent = "Rank: " + rank;
+  localStorage.setItem("rank", rank);
+}
+
+function getChanceGain() {
+  const base = rankData.find(r => r.name === rank).gain;
+  return base * prestigeMultiplier * traitMultiplier;
+}
+
+function saveData() {
+  localStorage.setItem("failChance", failChance);
+  localStorage.setItem("rolls", rolls);
+  localStorage.setItem("coins", coins);
+  localStorage.setItem("rank", rank);
+  localStorage.setItem("prestigeMultiplier", prestigeMultiplier);
+  localStorage.setItem("traitMultiplier", traitMultiplier);
+  localStorage.setItem("currentTrait", currentTrait);
+}
+
+function updateUI() {
+  chanceDisplay.innerHTML = `Chance to NOT get abcdefg: <b>${failChance.toFixed(2)}%</b>`;
+  rollCountDisplay.textContent = "Rolls: " + rolls;
+  multiplierDisplay.textContent = "Multiplier: " + (prestigeMultiplier * traitMultiplier).toFixed(2) + "x";
+  coinDisplay.textContent = "Coins: " + coins;
+  currentTraitDisplay.textContent = currentTrait;
+  modalCoins.textContent = coins;
+
+  prestigeBtn.style.display = failChance >= 100 ? "block" : "none";
+}
+
+updateRank();
+updateUI();
+
+/* ===========================
+   WEIGHTED RNG HELPERS
+   =========================== */
+
+function weightedRandom(list) {
+  const total = list.reduce((sum, item) => sum + item.weight, 0);
+  let r = Math.random() * total;
+
+  for (const item of list) {
+    if (r < item.weight) return item;
+    r -= item.weight;
+  }
+}
+
+/* ===========================
+   ROLL BUTTON
+   =========================== */
+
+rollBtn.addEventListener("click", () => {
+  if (cooldown) return;
+
+  startCooldown();
+
+  popupImg.style.opacity = 0;
+  popupImg.style.transform = "scale(0.6)";
+
+  rolls++;
+  updateRank();
+
+  failChance += getChanceGain();
+  saveData();
+  updateUI();
+
+  rollAnimation();
+});
+
+/* ===========================
+   COOLDOWN
+   =========================== */
+
+function startCooldown() {
+  cooldown = true;
+  rollBtn.disabled = true;
+
+  let timeLeft = cooldownTime;
+  cooldownDisplay.textContent = `Cooldown: ${timeLeft}s`;
+
+  const timer = setInterval(() => {
+    timeLeft--;
+    cooldownDisplay.textContent = `Cooldown: ${timeLeft}s`;
+
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      cooldown = false;
+      rollBtn.disabled = false;
+      cooldownDisplay.textContent = "";
+    }
+  }, 1000);
+}
+
+/* ===========================
+   ROLL ANIMATION
+   =========================== */
+
+function rollAnimation() {
+  let index = 0;
+  result.style.opacity = 1;
+
+  const interval = setInterval(() => {
+    result.textContent = names[index].name;
+    index = (index + 1) % names.length;
+  }, 120);
+
+  setTimeout(() => {
+    clearInterval(interval);
+
+    const realRoll = Math.random() * 100;
+
+    if (realRoll < failChance) {
+      handleSuccess();
+    } else {
+      handleFail();
     }
 
-    function getChanceGain() {
-      return rankData.find(r => r.name === rank).gain * multiplier;
-    }
+  }, 1500);
+}
 
-    function saveData() {
-      localStorage.setItem("failChance", failChance);
-      localStorage.setItem("rolls", rolls);
-      localStorage.setItem("rank", rank);
-      localStorage.setItem("multiplier", multiplier);
-    }
+/* ===========================
+   FAIL EFFECTS
+   =========================== */
 
-    function updateUI() {
-      chanceDisplay.innerHTML = `Chance to NOT get abcdefg: <b>${failChance.toFixed(2)}%</b>`;
-      rollCountDisplay.textContent = "Rolls: " + rolls;
-      rankDisplay.textContent = "Rank: " + rank;
-      multiplierDisplay.textContent = "Multiplier: " + multiplier.toFixed(1) + "x";
+function handleFail() {
+  document.body.classList.add("failFlash");
+  document.body.classList.add("shake");
 
-      prestigeBtn.style.display = failChance >= 100 ? "block" : "none";
-    }
+  failText.style.opacity = 1;
 
-    updateRank();
-    updateUI();
+  setTimeout(() => {
+    document.body.classList.remove("failFlash");
+    document.body.classList.remove("shake");
+    failText.style.opacity = 0;
 
-    const names = [
-      "foxyras",
-      "transported13",
-      "XYZcreeper",
-      "bibbo123011",
-      "d1sweat",
-      "jero",
-      "sleepy (the worst person in the world)",
-      "doom_e10"
-    ];
+    result.textContent = "abcdefg";
+    popupImg.style.opacity = 1;
+    popupImg.style.transform = "scale(1)";
+  }, 500);
+}
 
-    rollBtn.addEventListener("click", () => {
-      if (cooldown) return;
+/* ===========================
+   SUCCESS EFFECTS
+   =========================== */
 
-      startCooldown();
+function handleSuccess() {
+  const chosen = weightedRandom(names);
 
-      popupImg.style.opacity = 0;
-      popupImg.style.transform = "scale(0.6)";
+  coins += chosen.weight;
+  saveData();
+  updateUI();
 
-      rolls++;
-      updateRank();
+  document.body.classList.add("successFlash");
 
-      failChance += getChanceGain();
-      if (failChance > 100) failChance = 100;
+  successText.style.opacity = 1;
 
-      saveData();
-      updateUI();
-
-      rollAnimation();
-      particleBurst();
-    });
-
-    function startCooldown() {
-      cooldown = true;
-      rollBtn.disabled = true;
-
-      let timeLeft = cooldownTime;
-      cooldownDisplay.textContent = `Cooldown: ${timeLeft}s`;
-
-      const timer = setInterval(() => {
-        timeLeft--;
-        cooldownDisplay.textContent = `Cooldown: ${timeLeft}s`;
-
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          cooldown = false;
-          rollBtn.disabled = false;
-          cooldownDisplay.textContent = "";
-        }
-      }, 1000);
-    }
-
-    function rollAnimation() {
-      let index = 0;
-      result.style.opacity = 1;
-
-      const interval = setInterval(() => {
-        result.textContent = names[index];
-        index = (index + 1) % names.length;
-      }, 120);
-
-      setTimeout(() => {
-        clearInterval(interval);
-
-        triggerFailEffects();
-
-        setTimeout(() => {
-          result.textContent = "abcdefg";
-          popupImg.style.opacity = 1;
-          popupImg.style.transform = "scale(1)";
-        }, 500);
-
-      }, 1500);
-    }
-
-    function triggerFailEffects() {
-      document.body.classList.add("failFlash");
-      document.body.classList.add("shake");
-
-      failText.style.opacity = 1;
-
-      setTimeout(() => {
-        document.body.classList.remove("failFlash");
-        document.body.classList.remove("shake");
-        failText.style.opacity = 0;
-      }, 500);
-    }
-
-    function particleBurst() {
-      for (let i = 0; i < 30; i++) {
-        const p = document.createElement("div");
-        p.classList.add("burst");
-
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 80 + Math.random() * 40;
-
-        p.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
-        p.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
-
-        p.style.left = (window.innerWidth / 2) + "px";
-        p.style.top = (window.innerHeight / 2) + "px";
-
-        document.body.appendChild(p);
-
-        setTimeout(() => p.remove(), 800);
-      }
-    }
-
-    prestigeBtn.addEventListener("click", () => {
-      multiplier *= 2;
-      failChance = 0;
-      rolls = 0;
-      rank = "Beginner";
-
-      saveData();
-      updateUI();
-    });
-  </script>
-
-</body>
-</html>
+  for (let i = 0; i < 30; i++) {
+    const c = document.createElement("div");
+    c.classList.add("confetti");
+    c.style.left = (window.innerWidth / 2 + (Math.random() * 200 - 100)) + "px";
+    c.style.top = (window.innerHeight / 2) + "px";
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 1000
