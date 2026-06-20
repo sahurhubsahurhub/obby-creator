@@ -525,3 +525,67 @@ function handleSuccess() {
     c.style.top = (window.innerHeight / 2) + "px";
     document.body.appendChild(c);
     setTimeout(() => c.remove(), 1000
+    setTimeout(() => c.remove(), 1000);
+  }
+
+  setTimeout(() => {
+    document.body.classList.remove("successFlash");
+    successText.style.opacity = 0;
+
+    result.textContent = chosen.name;
+    popupImg.style.opacity = 1;
+    popupImg.style.transform = "scale(1)";
+  }, 500);
+}
+
+/* ===========================
+   TRAIT SHOP MODAL
+   =========================== */
+
+traitBtn.addEventListener("click", () => {
+  traitModal.style.display = "block";
+  modalCoins.textContent = coins;
+});
+
+closeModal.addEventListener("click", () => {
+  traitModal.style.display = "none";
+});
+
+/* ===========================
+   TRAIT ROLLING (50 coins)
+   =========================== */
+
+traitRollBtn.addEventListener("click", () => {
+  if (coins < 50) return;
+
+  coins -= 50;
+
+  const newTrait = weightedRandom(traits);
+  currentTrait = newTrait.name;
+  traitMultiplier = newTrait.mult;
+
+  saveData();
+  updateUI();
+
+  currentTraitDisplay.textContent = currentTrait;
+  modalCoins.textContent = coins;
+});
+
+/* ===========================
+   PRESTIGE
+   =========================== */
+
+prestigeBtn.addEventListener("click", () => {
+  prestigeMultiplier *= 2;
+
+  failChance = 0;
+  rolls = 0;
+  rank = "Beginner";
+
+  saveData();
+  updateUI();
+});
+</script>
+
+</body>
+</html>
