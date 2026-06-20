@@ -272,15 +272,45 @@
     <button id="traitRollBtn">Roll Trait</button>
   </div>
 
+  <!-- JS COMING IN MESSAGE 2 -->
 <script>
-/* ===========================
-   INITIAL DATA + LOCALSTORAGE
-   =========================== */
+/* ============================================================
+   MIGRATION PATCH — RESTORES OLD PROGRESS SAFELY
+   ============================================================ */
+
+if (!localStorage.getItem("migrationComplete")) {
+
+  // Old prestige multiplier was stored as "multiplier"
+  if (localStorage.getItem("multiplier") !== null) {
+    const oldPrestige = parseFloat(localStorage.getItem("multiplier"));
+    localStorage.setItem("prestigeMultiplier", oldPrestige);
+  }
+
+  // Old trait name was stored as "trait"
+  if (localStorage.getItem("trait") !== null) {
+    const oldTrait = localStorage.getItem("trait");
+    localStorage.setItem("currentTrait", oldTrait);
+    localStorage.setItem("traitMultiplier", 1);
+  }
+
+  // Coins stay the same
+  if (localStorage.getItem("coins") !== null) {
+    localStorage.setItem("coins", localStorage.getItem("coins"));
+  }
+
+  // Mark migration complete
+  localStorage.setItem("migrationComplete", "true");
+}
+
+/* ============================================================
+   LOAD SAVED DATA
+   ============================================================ */
 
 let failChance = parseFloat(localStorage.getItem("failChance")) || 0;
 let rolls = parseInt(localStorage.getItem("rolls")) || 0;
 let rank = localStorage.getItem("rank") || "Beginner";
 let coins = parseInt(localStorage.getItem("coins")) || 0;
+
 let prestigeMultiplier = parseFloat(localStorage.getItem("prestigeMultiplier")) || 1;
 let traitMultiplier = parseFloat(localStorage.getItem("traitMultiplier")) || 1;
 let currentTrait = localStorage.getItem("currentTrait") || "None";
@@ -288,9 +318,9 @@ let currentTrait = localStorage.getItem("currentTrait") || "None";
 const cooldownTime = 3;
 let cooldown = false;
 
-/* ===========================
+/* ============================================================
    RANK DATA
-   =========================== */
+   ============================================================ */
 
 const rankData = [
   { name: "Beginner", rolls: 0, gain: 0.01 },
@@ -301,9 +331,9 @@ const rankData = [
   { name: "Mythic", rolls: 1000, gain: 0.20 }
 ];
 
-/* ===========================
+/* ============================================================
    TRAIT DATA (WEIGHTED)
-   =========================== */
+   ============================================================ */
 
 const traits = [
   { name: "Weak Luck", mult: 1.1, weight: 50 },
@@ -313,9 +343,9 @@ const traits = [
   { name: "Godlike Luck", mult: 3.0, weight: 1 }
 ];
 
-/* ===========================
+/* ============================================================
    NAME RNG (WEIGHTED)
-   =========================== */
+   ============================================================ */
 
 const names = [
   { name: "foxyras", weight: 50 },
@@ -327,21 +357,23 @@ const names = [
   { name: "doom_e10", weight: 1 }
 ];
 
-/* ===========================
+/* ============================================================
    UI ELEMENTS
-   =========================== */
+   ============================================================ */
 
 const result = document.getElementById("result");
 const rollBtn = document.getElementById("rollBtn");
 const traitBtn = document.getElementById("traitBtn");
 const prestigeBtn = document.getElementById("prestigeBtn");
 const popupImg = document.getElementById("popupImg");
+
 const chanceDisplay = document.getElementById("chanceDisplay");
 const cooldownDisplay = document.getElementById("cooldownDisplay");
 const rankDisplay = document.getElementById("rankDisplay");
 const rollCountDisplay = document.getElementById("rollCountDisplay");
 const multiplierDisplay = document.getElementById("multiplierDisplay");
 const coinDisplay = document.getElementById("coinDisplay");
+
 const failText = document.getElementById("failText");
 const successText = document.getElementById("successText");
 
@@ -351,9 +383,19 @@ const currentTraitDisplay = document.getElementById("currentTrait");
 const modalCoins = document.getElementById("modalCoins");
 const traitRollBtn = document.getElementById("traitRollBtn");
 
-/* ===========================
-   FUNCTIONS
-   =========================== */
+/* ============================================================
+   SAVE + LOAD HELPERS
+   ============================================================ */
+
+function saveData() {
+  localStorage.setItem("failChance", failChance);
+  localStorage.setItem("rolls", rolls);
+  localStorage.setItem("rank", rank);
+  localStorage.setItem("coins", coins);
+  localStorage.setItem("prestigeMultiplier", prestigeMultiplier);
+  localStorage.setItem("traitMultiplier", traitMultiplier);
+  localStorage.setItem("currentTrait", currentTrait);
+}
 
 function updateRank() {
   for (let i = rankData.length - 1; i >= 0; i--) {
@@ -371,21 +413,12 @@ function getChanceGain() {
   return base * prestigeMultiplier * traitMultiplier;
 }
 
-function saveData() {
-  localStorage.setItem("failChance", failChance);
-  localStorage.setItem("rolls", rolls);
-  localStorage.setItem("coins", coins);
-  localStorage.setItem("rank", rank);
-  localStorage.setItem("prestigeMultiplier", prestigeMultiplier);
-  localStorage.setItem("traitMultiplier", traitMultiplier);
-  localStorage.setItem("currentTrait", currentTrait);
-}
-
 function updateUI() {
   chanceDisplay.innerHTML = `Chance to NOT get abcdefg: <b>${failChance.toFixed(2)}%</b>`;
   rollCountDisplay.textContent = "Rolls: " + rolls;
   multiplierDisplay.textContent = "Multiplier: " + (prestigeMultiplier * traitMultiplier).toFixed(2) + "x";
   coinDisplay.textContent = "Coins: " + coins;
+
   currentTraitDisplay.textContent = currentTrait;
   modalCoins.textContent = coins;
 
@@ -395,9 +428,9 @@ function updateUI() {
 updateRank();
 updateUI();
 
-/* ===========================
-   WEIGHTED RNG HELPERS
-   =========================== */
+/* ============================================================
+   WEIGHTED RNG FUNCTION
+   ============================================================ */
 
 function weightedRandom(list) {
   const total = list.reduce((sum, item) => sum + item.weight, 0);
@@ -408,32 +441,9 @@ function weightedRandom(list) {
     r -= item.weight;
   }
 }
-
-/* ===========================
-   ROLL BUTTON
-   =========================== */
-
-rollBtn.addEventListener("click", () => {
-  if (cooldown) return;
-
-  startCooldown();
-
-  popupImg.style.opacity = 0;
-  popupImg.style.transform = "scale(0.6)";
-
-  rolls++;
-  updateRank();
-
-  failChance += getChanceGain();
-  saveData();
-  updateUI();
-
-  rollAnimation();
-});
-
-/* ===========================
-   COOLDOWN
-   =========================== */
+/* ============================================================
+   COOLDOWN SYSTEM
+   ============================================================ */
 
 function startCooldown() {
   cooldown = true;
@@ -455,9 +465,31 @@ function startCooldown() {
   }, 1000);
 }
 
-/* ===========================
-   ROLL ANIMATION
-   =========================== */
+/* ============================================================
+   ROLL BUTTON LOGIC
+   ============================================================ */
+
+rollBtn.addEventListener("click", () => {
+  if (cooldown) return;
+
+  startCooldown();
+
+  popupImg.style.opacity = 0;
+  popupImg.style.transform = "scale(0.6)";
+
+  rolls++;
+  updateRank();
+
+  failChance += getChanceGain();
+  saveData();
+  updateUI();
+
+  rollAnimation();
+});
+
+/* ============================================================
+   ROLL ANIMATION (SPINNING NAMES)
+   ============================================================ */
 
 function rollAnimation() {
   let index = 0;
@@ -482,9 +514,9 @@ function rollAnimation() {
   }, 1500);
 }
 
-/* ===========================
+/* ============================================================
    FAIL EFFECTS
-   =========================== */
+   ============================================================ */
 
 function handleFail() {
   document.body.classList.add("failFlash");
@@ -503,9 +535,9 @@ function handleFail() {
   }, 500);
 }
 
-/* ===========================
+/* ============================================================
    SUCCESS EFFECTS
-   =========================== */
+   ============================================================ */
 
 function handleSuccess() {
   const chosen = weightedRandom(names);
@@ -515,16 +547,15 @@ function handleSuccess() {
   updateUI();
 
   document.body.classList.add("successFlash");
-
   successText.style.opacity = 1;
 
-  for (let i = 0; i < 30; i++) {
+  // Confetti burst
+  for (let i = 0; i < 40; i++) {
     const c = document.createElement("div");
     c.classList.add("confetti");
     c.style.left = (window.innerWidth / 2 + (Math.random() * 200 - 100)) + "px";
     c.style.top = (window.innerHeight / 2) + "px";
     document.body.appendChild(c);
-    setTimeout(() => c.remove(), 1000
     setTimeout(() => c.remove(), 1000);
   }
 
@@ -538,9 +569,9 @@ function handleSuccess() {
   }, 500);
 }
 
-/* ===========================
-   TRAIT SHOP MODAL
-   =========================== */
+/* ============================================================
+   TRAIT SHOP LOGIC
+   ============================================================ */
 
 traitBtn.addEventListener("click", () => {
   traitModal.style.display = "block";
@@ -550,10 +581,6 @@ traitBtn.addEventListener("click", () => {
 closeModal.addEventListener("click", () => {
   traitModal.style.display = "none";
 });
-
-/* ===========================
-   TRAIT ROLLING (50 coins)
-   =========================== */
 
 traitRollBtn.addEventListener("click", () => {
   if (coins < 50) return;
@@ -571,9 +598,9 @@ traitRollBtn.addEventListener("click", () => {
   modalCoins.textContent = coins;
 });
 
-/* ===========================
-   PRESTIGE
-   =========================== */
+/* ============================================================
+   PRESTIGE SYSTEM
+   ============================================================ */
 
 prestigeBtn.addEventListener("click", () => {
   prestigeMultiplier *= 2;
@@ -585,7 +612,12 @@ prestigeBtn.addEventListener("click", () => {
   saveData();
   updateUI();
 });
-</script>
 
+/* ============================================================
+   SCRIPT FINALIZATION
+   ============================================================ */
+
+console.log("System loaded successfully.");
+</script>
 </body>
 </html>
