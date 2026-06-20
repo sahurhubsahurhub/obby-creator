@@ -16,6 +16,7 @@
       background: linear-gradient(135deg, #6a11cb, #2575fc);
       color: white;
       overflow: hidden;
+      transition: background 0.3s;
     }
 
     h1 {
@@ -31,7 +32,7 @@
       100% { transform: translateY(0); }
     }
 
-    #chanceDisplay, #rankDisplay, #rollCountDisplay {
+    #chanceDisplay, #rankDisplay, #rollCountDisplay, #multiplierDisplay {
       font-size: 22px;
       margin-bottom: 10px;
       opacity: 0.9;
@@ -44,7 +45,7 @@
       height: 22px;
     }
 
-    #rollBtn {
+    #rollBtn, #prestigeBtn {
       padding: 15px 40px;
       font-size: 22px;
       border: none;
@@ -54,6 +55,7 @@
       color: white;
       box-shadow: 0 0 20px rgba(255,255,255,0.4);
       transition: 0.2s;
+      margin-top: 10px;
     }
 
     #rollBtn:disabled {
@@ -63,9 +65,15 @@
       box-shadow: none;
     }
 
-    #rollBtn:hover:not(:disabled) {
+    #rollBtn:hover:not(:disabled),
+    #prestigeBtn:hover {
       transform: scale(1.1);
       box-shadow: 0 0 30px rgba(255,255,255,0.7);
+    }
+
+    #prestigeBtn {
+      display: none;
+      background: linear-gradient(90deg, #00ff9d, #00c2ff);
     }
 
     #result {
@@ -86,6 +94,7 @@
       filter: drop-shadow(0 0 15px rgba(255,255,255,0.7));
     }
 
+    /* Burst particles */
     .burst {
       position: absolute;
       width: 8px;
@@ -100,6 +109,34 @@
       from { transform: translate(0,0) scale(1); opacity: 1; }
       to { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
     }
+
+    /* FAIL EFFECTS */
+    @keyframes screenShake {
+      0% { transform: translate(0,0); }
+      25% { transform: translate(10px,-10px); }
+      50% { transform: translate(-10px,10px); }
+      75% { transform: translate(10px,10px); }
+      100% { transform: translate(0,0); }
+    }
+
+    .shake {
+      animation: screenShake 0.4s;
+    }
+
+    .failFlash {
+      background: linear-gradient(135deg, #ff0000, #8b0000) !important;
+    }
+
+    #failText {
+      position: absolute;
+      top: 20%;
+      font-size: 60px;
+      font-weight: bold;
+      color: #ff4d4d;
+      opacity: 0;
+      text-shadow: 0 0 20px red;
+      transition: opacity 0.3s;
+    }
   </style>
 </head>
 
@@ -110,27 +147,35 @@
   <div id="rankDisplay">Rank: Beginner</div>
   <div id="rollCountDisplay">Rolls: 0</div>
   <div id="chanceDisplay">Chance to NOT get abcdefg: <b>0.00%</b></div>
+  <div id="multiplierDisplay">Multiplier: 1x</div>
 
   <button id="rollBtn">ROLL</button>
+  <button id="prestigeBtn">PRESTIGE</button>
 
   <div id="cooldownDisplay"></div>
 
-  <div id="result">abcdefg</div>
+  <div id="result">abcdefg the GOAT</div>
 
   <img id="popupImg" src="https://i.imgur.com/dmmXw48.png" />
+
+  <div id="failText">FAILED ROLL!</div>
 
   <script>
     const result = document.getElementById("result");
     const rollBtn = document.getElementById("rollBtn");
+    const prestigeBtn = document.getElementById("prestigeBtn");
     const popupImg = document.getElementById("popupImg");
     const chanceDisplay = document.getElementById("chanceDisplay");
     const cooldownDisplay = document.getElementById("cooldownDisplay");
     const rankDisplay = document.getElementById("rankDisplay");
     const rollCountDisplay = document.getElementById("rollCountDisplay");
+    const multiplierDisplay = document.getElementById("multiplierDisplay");
+    const failText = document.getElementById("failText");
 
     let failChance = parseFloat(localStorage.getItem("failChance")) || 0;
     let rolls = parseInt(localStorage.getItem("rolls")) || 0;
     let rank = localStorage.getItem("rank") || "Beginner";
+    let multiplier = parseFloat(localStorage.getItem("multiplier")) || 1;
 
     const cooldownTime = 3;
     let cooldown = false;
@@ -156,19 +201,23 @@
     }
 
     function getChanceGain() {
-      return rankData.find(r => r.name === rank).gain;
+      return rankData.find(r => r.name === rank).gain * multiplier;
     }
 
     function saveData() {
       localStorage.setItem("failChance", failChance);
       localStorage.setItem("rolls", rolls);
       localStorage.setItem("rank", rank);
+      localStorage.setItem("multiplier", multiplier);
     }
 
     function updateUI() {
       chanceDisplay.innerHTML = `Chance to NOT get abcdefg: <b>${failChance.toFixed(2)}%</b>`;
       rollCountDisplay.textContent = "Rolls: " + rolls;
       rankDisplay.textContent = "Rank: " + rank;
+      multiplierDisplay.textContent = "Multiplier: " + multiplier.toFixed(1) + "x";
+
+      prestigeBtn.style.display = failChance >= 100 ? "block" : "none";
     }
 
     updateRank();
@@ -236,11 +285,29 @@
 
       setTimeout(() => {
         clearInterval(interval);
-        result.textContent = "abcdefg";
 
-        popupImg.style.opacity = 1;
-        popupImg.style.transform = "scale(1)";
+        triggerFailEffects();
+
+        setTimeout(() => {
+          result.textContent = "abcdefg";
+          popupImg.style.opacity = 1;
+          popupImg.style.transform = "scale(1)";
+        }, 500);
+
       }, 1500);
+    }
+
+    function triggerFailEffects() {
+      document.body.classList.add("failFlash");
+      document.body.classList.add("shake");
+
+      failText.style.opacity = 1;
+
+      setTimeout(() => {
+        document.body.classList.remove("failFlash");
+        document.body.classList.remove("shake");
+        failText.style.opacity = 0;
+      }, 500);
     }
 
     function particleBurst() {
@@ -262,6 +329,16 @@
         setTimeout(() => p.remove(), 800);
       }
     }
+
+    prestigeBtn.addEventListener("click", () => {
+      multiplier *= 2;
+      failChance = 0;
+      rolls = 0;
+      rank = "Beginner";
+
+      saveData();
+      updateUI();
+    });
   </script>
 
 </body>
