@@ -127,16 +127,20 @@
       background: linear-gradient(135deg, #ff0000, #8b0000) !important;
     }
 
-    #failText {
-      position: absolute;
-      top: 20%;
-      font-size: 60px;
-      font-weight: bold;
-      color: #ff4d4d;
-      opacity: 0;
-      text-shadow: 0 0 20px red;
-      transition: opacity 0.3s;
-    }
+#failText {
+  position: absolute;
+  top: 55%;          /* moved down so it never overlaps title */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 60px;
+  font-weight: bold;
+  color: #ff4d4d;
+  opacity: 0;
+  text-shadow: 0 0 20px red;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
   </style>
 </head>
 
