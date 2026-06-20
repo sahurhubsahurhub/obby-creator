@@ -31,9 +31,9 @@
       100% { transform: translateY(0); }
     }
 
-    #chanceDisplay {
+    #chanceDisplay, #rankDisplay, #rollCountDisplay {
       font-size: 22px;
-      margin-bottom: 25px;
+      margin-bottom: 10px;
       opacity: 0.9;
     }
 
@@ -107,6 +107,8 @@
 
   <h1>Best Creator In Obby Creator</h1>
 
+  <div id="rankDisplay">Rank: Beginner</div>
+  <div id="rollCountDisplay">Rolls: 0</div>
   <div id="chanceDisplay">Chance to NOT get abcdefg: <b>0.00%</b></div>
 
   <button id="rollBtn">ROLL</button>
@@ -123,10 +125,54 @@
     const popupImg = document.getElementById("popupImg");
     const chanceDisplay = document.getElementById("chanceDisplay");
     const cooldownDisplay = document.getElementById("cooldownDisplay");
+    const rankDisplay = document.getElementById("rankDisplay");
+    const rollCountDisplay = document.getElementById("rollCountDisplay");
 
-    let failChance = 0; 
+    let failChance = parseFloat(localStorage.getItem("failChance")) || 0;
+    let rolls = parseInt(localStorage.getItem("rolls")) || 0;
+    let rank = localStorage.getItem("rank") || "Beginner";
+
+    const cooldownTime = 3;
     let cooldown = false;
-    const cooldownTime = 3; // seconds
+
+    const rankData = [
+      { name: "Beginner", rolls: 0, gain: 0.01 },
+      { name: "Bronze", rolls: 50, gain: 0.02 },
+      { name: "Silver", rolls: 150, gain: 0.03 },
+      { name: "Gold", rolls: 300, gain: 0.05 },
+      { name: "Diamond", rolls: 600, gain: 0.10 },
+      { name: "Mythic", rolls: 1000, gain: 0.20 }
+    ];
+
+    function updateRank() {
+      for (let i = rankData.length - 1; i >= 0; i--) {
+        if (rolls >= rankData[i].rolls) {
+          rank = rankData[i].name;
+          break;
+        }
+      }
+      rankDisplay.textContent = "Rank: " + rank;
+      localStorage.setItem("rank", rank);
+    }
+
+    function getChanceGain() {
+      return rankData.find(r => r.name === rank).gain;
+    }
+
+    function saveData() {
+      localStorage.setItem("failChance", failChance);
+      localStorage.setItem("rolls", rolls);
+      localStorage.setItem("rank", rank);
+    }
+
+    function updateUI() {
+      chanceDisplay.innerHTML = `Chance to NOT get abcdefg: <b>${failChance.toFixed(2)}%</b>`;
+      rollCountDisplay.textContent = "Rolls: " + rolls;
+      rankDisplay.textContent = "Rank: " + rank;
+    }
+
+    updateRank();
+    updateUI();
 
     const names = [
       "foxyras",
@@ -142,13 +188,18 @@
       if (cooldown) return;
 
       startCooldown();
+
       popupImg.style.opacity = 0;
       popupImg.style.transform = "scale(0.6)";
 
-      failChance += 0.01;
+      rolls++;
+      updateRank();
+
+      failChance += getChanceGain();
       if (failChance > 100) failChance = 100;
 
-      chanceDisplay.innerHTML = `Chance to NOT get abcdefg: <b>${failChance.toFixed(2)}%</b>`;
+      saveData();
+      updateUI();
 
       rollAnimation();
       particleBurst();
@@ -185,7 +236,7 @@
 
       setTimeout(() => {
         clearInterval(interval);
-        result.textContent = "abcdefg the GOAT";
+        result.textContent = "abcdefg";
 
         popupImg.style.opacity = 1;
         popupImg.style.transform = "scale(1)";
