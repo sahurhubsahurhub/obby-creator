@@ -21,7 +21,7 @@
     h1 {
       font-size: 48px;
       text-shadow: 0 0 15px rgba(255,255,255,0.7);
-      margin-bottom: 30px;
+      margin-bottom: 10px;
       animation: float 3s ease-in-out infinite;
     }
 
@@ -29,6 +29,19 @@
       0% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
       100% { transform: translateY(0); }
+    }
+
+    #chanceDisplay {
+      font-size: 22px;
+      margin-bottom: 25px;
+      opacity: 0.9;
+    }
+
+    #cooldownDisplay {
+      font-size: 18px;
+      margin-top: 10px;
+      opacity: 0.8;
+      height: 22px;
     }
 
     #rollBtn {
@@ -43,7 +56,14 @@
       transition: 0.2s;
     }
 
-    #rollBtn:hover {
+    #rollBtn:disabled {
+      background: gray;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    #rollBtn:hover:not(:disabled) {
       transform: scale(1.1);
       box-shadow: 0 0 30px rgba(255,255,255,0.7);
     }
@@ -57,7 +77,6 @@
       transition: opacity 0.4s ease;
     }
 
-    /* Popup image */
     #popupImg {
       margin-top: 25px;
       width: 260px;
@@ -67,7 +86,6 @@
       filter: drop-shadow(0 0 15px rgba(255,255,255,0.7));
     }
 
-    /* Particle burst */
     .burst {
       position: absolute;
       width: 8px;
@@ -89,7 +107,11 @@
 
   <h1>Best Creator In Obby Creator</h1>
 
+  <div id="chanceDisplay">Chance to NOT get abcdefg: <b>0.00%</b></div>
+
   <button id="rollBtn">ROLL</button>
+
+  <div id="cooldownDisplay"></div>
 
   <div id="result">abcdefg</div>
 
@@ -99,6 +121,12 @@
     const result = document.getElementById("result");
     const rollBtn = document.getElementById("rollBtn");
     const popupImg = document.getElementById("popupImg");
+    const chanceDisplay = document.getElementById("chanceDisplay");
+    const cooldownDisplay = document.getElementById("cooldownDisplay");
+
+    let failChance = 0; 
+    let cooldown = false;
+    const cooldownTime = 3; // seconds
 
     const names = [
       "foxyras",
@@ -111,11 +139,40 @@
     ];
 
     rollBtn.addEventListener("click", () => {
+      if (cooldown) return;
+
+      startCooldown();
       popupImg.style.opacity = 0;
       popupImg.style.transform = "scale(0.6)";
+
+      failChance += 0.01;
+      if (failChance > 100) failChance = 100;
+
+      chanceDisplay.innerHTML = `Chance to NOT get abcdefg: <b>${failChance.toFixed(2)}%</b>`;
+
       rollAnimation();
       particleBurst();
     });
+
+    function startCooldown() {
+      cooldown = true;
+      rollBtn.disabled = true;
+
+      let timeLeft = cooldownTime;
+      cooldownDisplay.textContent = `Cooldown: ${timeLeft}s`;
+
+      const timer = setInterval(() => {
+        timeLeft--;
+        cooldownDisplay.textContent = `Cooldown: ${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          cooldown = false;
+          rollBtn.disabled = false;
+          cooldownDisplay.textContent = "";
+        }
+      }, 1000);
+    }
 
     function rollAnimation() {
       let index = 0;
@@ -128,7 +185,7 @@
 
       setTimeout(() => {
         clearInterval(interval);
-        result.textContent = "abcdefg the GOAT";
+        result.textContent = "abcdefg";
 
         popupImg.style.opacity = 1;
         popupImg.style.transform = "scale(1)";
