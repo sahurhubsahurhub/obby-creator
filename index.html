@@ -57,6 +57,16 @@
       transition: opacity 0.4s ease;
     }
 
+    /* Popup image */
+    #popupImg {
+      margin-top: 25px;
+      width: 260px;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      filter: drop-shadow(0 0 15px rgba(255,255,255,0.7));
+    }
+
     /* Particle burst */
     .burst {
       position: absolute;
@@ -83,9 +93,12 @@
 
   <div id="result">abcdefg</div>
 
+  <img id="popupImg" src="https://i.imgur.com/dmmXw48.png" />
+
   <script>
     const result = document.getElementById("result");
     const rollBtn = document.getElementById("rollBtn");
+    const popupImg = document.getElementById("popupImg");
 
     const names = [
       "foxyras",
@@ -98,6 +111,8 @@
     ];
 
     rollBtn.addEventListener("click", () => {
+      popupImg.style.opacity = 0;
+      popupImg.style.transform = "scale(0.6)";
       rollAnimation();
       particleBurst();
     });
@@ -113,7 +128,10 @@
 
       setTimeout(() => {
         clearInterval(interval);
-        result.textContent = "abcdefg"; // ALWAYS lands on this
+        result.textContent = "abcdefg the GOAT";
+
+        popupImg.style.opacity = 1;
+        popupImg.style.transform = "scale(1)";
       }, 1500);
     }
 
