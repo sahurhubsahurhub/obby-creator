@@ -45,7 +45,7 @@
       height: 22px;
     }
 
-    #rollBtn, #traitBtn, #prestigeBtn {
+    #rollBtn, #traitBtn, #prestigeBtn, #cooldownUpgradeBtn {
       padding: 15px 40px;
       font-size: 22px;
       border: none;
@@ -67,7 +67,8 @@
 
     #rollBtn:hover:not(:disabled),
     #traitBtn:hover,
-    #prestigeBtn:hover {
+    #prestigeBtn:hover,
+    #cooldownUpgradeBtn:hover {
       transform: scale(1.1);
       box-shadow: 0 0 30px rgba(255,255,255,0.7);
     }
@@ -81,6 +82,10 @@
       background: linear-gradient(90deg, #d4af37, #f7d774);
       color: black;
       font-weight: bold;
+    }
+
+    #cooldownUpgradeBtn {
+      background: linear-gradient(90deg, #00eaff, #0088ff);
     }
 
     #result {
@@ -101,7 +106,6 @@
       filter: drop-shadow(0 0 15px rgba(255,255,255,0.7));
     }
 
-    /* FAIL TEXT ABOVE TITLE */
     #failText {
       position: absolute;
       top: 5%;
@@ -116,7 +120,6 @@
       pointer-events: none;
     }
 
-    /* SUCCESS TEXT */
     #successText {
       position: absolute;
       top: 5%;
@@ -131,7 +134,6 @@
       pointer-events: none;
     }
 
-    /* Burst particles */
     .burst {
       position: absolute;
       width: 8px;
@@ -147,7 +149,6 @@
       to { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
     }
 
-    /* SUCCESS CONFETTI */
     .confetti {
       position: absolute;
       width: 10px;
@@ -162,7 +163,6 @@
       to { opacity: 0; transform: translateY(150px) rotate(360deg); }
     }
 
-    /* FAIL EFFECTS */
     @keyframes screenShake {
       0% { transform: translate(0,0); }
       25% { transform: translate(10px,-10px); }
@@ -183,7 +183,6 @@
       background: linear-gradient(135deg, #ffd700, #ffea8a) !important;
     }
 
-    /* GOLD MODAL */
     #traitModal {
       position: fixed;
       top: 50%;
@@ -241,6 +240,7 @@
   <div>
     <button id="rollBtn">ROLL</button>
     <button id="traitBtn">TRAIT SHOP</button>
+    <button id="cooldownUpgradeBtn">UPGRADE COOLDOWN (100 coins)</button>
   </div>
 
   <button id="prestigeBtn">PRESTIGE</button>
@@ -254,7 +254,6 @@
   <div id="failText">FAILED ROLL!</div>
   <div id="successText">SUCCESS!</div>
 
-  <!-- TRAIT SHOP MODAL -->
   <div id="traitModal">
     <div id="closeModal">×</div>
     <h2 style="margin-top: 0;">Trait Shop</h2>
@@ -272,39 +271,26 @@
     <button id="traitRollBtn">Roll Trait</button>
   </div>
 
-  <!-- JS COMING IN MESSAGE 2 -->
 <script>
-/* ============================================================
-   MIGRATION PATCH — RESTORES OLD PROGRESS SAFELY
-   ============================================================ */
+/* MIGRATION PATCH */
 
 if (!localStorage.getItem("migrationComplete")) {
-
-  // Old prestige multiplier was stored as "multiplier"
   if (localStorage.getItem("multiplier") !== null) {
     const oldPrestige = parseFloat(localStorage.getItem("multiplier"));
     localStorage.setItem("prestigeMultiplier", oldPrestige);
   }
-
-  // Old trait name was stored as "trait"
   if (localStorage.getItem("trait") !== null) {
     const oldTrait = localStorage.getItem("trait");
     localStorage.setItem("currentTrait", oldTrait);
     localStorage.setItem("traitMultiplier", 1);
   }
-
-  // Coins stay the same
   if (localStorage.getItem("coins") !== null) {
     localStorage.setItem("coins", localStorage.getItem("coins"));
   }
-
-  // Mark migration complete
   localStorage.setItem("migrationComplete", "true");
 }
 
-/* ============================================================
-   LOAD SAVED DATA
-   ============================================================ */
+/* LOAD DATA */
 
 let failChance = parseFloat(localStorage.getItem("failChance")) || 0;
 let rolls = parseInt(localStorage.getItem("rolls")) || 0;
@@ -315,12 +301,13 @@ let prestigeMultiplier = parseFloat(localStorage.getItem("prestigeMultiplier")) 
 let traitMultiplier = parseFloat(localStorage.getItem("traitMultiplier")) || 1;
 let currentTrait = localStorage.getItem("currentTrait") || "None";
 
-const cooldownTime = 3;
+let cooldownLevel = parseInt(localStorage.getItem("cooldownLevel")) || 0;
+let cooldownTime = parseFloat(localStorage.getItem("cooldownTime")) || 3;
+let cooldownUpgradeCost = parseInt(localStorage.getItem("cooldownUpgradeCost")) || 100;
+
 let cooldown = false;
 
-/* ============================================================
-   RANK DATA
-   ============================================================ */
+/* DATA */
 
 const rankData = [
   { name: "Beginner", rolls: 0, gain: 0.01 },
@@ -331,10 +318,6 @@ const rankData = [
   { name: "Mythic", rolls: 1000, gain: 0.20 }
 ];
 
-/* ============================================================
-   TRAIT DATA (WEIGHTED)
-   ============================================================ */
-
 const traits = [
   { name: "Weak Luck", mult: 1.1, weight: 50 },
   { name: "Good Luck", mult: 1.3, weight: 30 },
@@ -342,10 +325,6 @@ const traits = [
   { name: "Insane Luck", mult: 2.0, weight: 5 },
   { name: "Godlike Luck", mult: 3.0, weight: 1 }
 ];
-
-/* ============================================================
-   NAME RNG (WEIGHTED)
-   ============================================================ */
 
 const names = [
   { name: "foxyras", weight: 50 },
@@ -357,15 +336,14 @@ const names = [
   { name: "doom_e10", weight: 1 }
 ];
 
-/* ============================================================
-   UI ELEMENTS
-   ============================================================ */
+/* ELEMENTS */
 
 const result = document.getElementById("result");
 const rollBtn = document.getElementById("rollBtn");
 const traitBtn = document.getElementById("traitBtn");
 const prestigeBtn = document.getElementById("prestigeBtn");
 const popupImg = document.getElementById("popupImg");
+const cooldownUpgradeBtn = document.getElementById("cooldownUpgradeBtn");
 
 const chanceDisplay = document.getElementById("chanceDisplay");
 const cooldownDisplay = document.getElementById("cooldownDisplay");
@@ -383,9 +361,7 @@ const currentTraitDisplay = document.getElementById("currentTrait");
 const modalCoins = document.getElementById("modalCoins");
 const traitRollBtn = document.getElementById("traitRollBtn");
 
-/* ============================================================
-   SAVE + LOAD HELPERS
-   ============================================================ */
+/* HELPERS */
 
 function saveData() {
   localStorage.setItem("failChance", failChance);
@@ -395,6 +371,9 @@ function saveData() {
   localStorage.setItem("prestigeMultiplier", prestigeMultiplier);
   localStorage.setItem("traitMultiplier", traitMultiplier);
   localStorage.setItem("currentTrait", currentTrait);
+  localStorage.setItem("cooldownLevel", cooldownLevel);
+  localStorage.setItem("cooldownTime", cooldownTime);
+  localStorage.setItem("cooldownUpgradeCost", cooldownUpgradeCost);
 }
 
 function updateRank() {
@@ -418,43 +397,38 @@ function updateUI() {
   rollCountDisplay.textContent = "Rolls: " + rolls;
   multiplierDisplay.textContent = "Multiplier: " + (prestigeMultiplier * traitMultiplier).toFixed(2) + "x";
   coinDisplay.textContent = "Coins: " + coins;
-
   currentTraitDisplay.textContent = currentTrait;
   modalCoins.textContent = coins;
-
   prestigeBtn.style.display = failChance >= 100 ? "block" : "none";
+  cooldownUpgradeBtn.textContent = `UPGRADE COOLDOWN (${cooldownUpgradeCost} coins)`;
 }
-
-updateRank();
-updateUI();
-
-/* ============================================================
-   WEIGHTED RNG FUNCTION
-   ============================================================ */
 
 function weightedRandom(list) {
   const total = list.reduce((sum, item) => sum + item.weight, 0);
   let r = Math.random() * total;
-
   for (const item of list) {
     if (r < item.weight) return item;
     r -= item.weight;
   }
 }
-/* ============================================================
-   COOLDOWN SYSTEM
-   ============================================================ */
+
+/* INIT */
+
+updateRank();
+updateUI();
+
+/* COOLDOWN */
 
 function startCooldown() {
   cooldown = true;
   rollBtn.disabled = true;
 
   let timeLeft = cooldownTime;
-  cooldownDisplay.textContent = `Cooldown: ${timeLeft}s`;
+  cooldownDisplay.textContent = `Cooldown: ${timeLeft.toFixed(1)}s`;
 
   const timer = setInterval(() => {
-    timeLeft--;
-    cooldownDisplay.textContent = `Cooldown: ${timeLeft}s`;
+    timeLeft -= 0.1;
+    cooldownDisplay.textContent = `Cooldown: ${Math.max(0, timeLeft).toFixed(1)}s`;
 
     if (timeLeft <= 0) {
       clearInterval(timer);
@@ -462,12 +436,10 @@ function startCooldown() {
       rollBtn.disabled = false;
       cooldownDisplay.textContent = "";
     }
-  }, 1000);
+  }, 100);
 }
 
-/* ============================================================
-   ROLL BUTTON LOGIC
-   ============================================================ */
+/* ROLL */
 
 rollBtn.addEventListener("click", () => {
   if (cooldown) return;
@@ -486,10 +458,6 @@ rollBtn.addEventListener("click", () => {
 
   rollAnimation();
 });
-
-/* ============================================================
-   ROLL ANIMATION (SPINNING NAMES)
-   ============================================================ */
 
 function rollAnimation() {
   let index = 0;
@@ -514,9 +482,7 @@ function rollAnimation() {
   }, 1500);
 }
 
-/* ============================================================
-   FAIL EFFECTS
-   ============================================================ */
+/* FAIL */
 
 function handleFail() {
   document.body.classList.add("failFlash");
@@ -535,9 +501,7 @@ function handleFail() {
   }, 500);
 }
 
-/* ============================================================
-   SUCCESS EFFECTS
-   ============================================================ */
+/* SUCCESS */
 
 function handleSuccess() {
   const chosen = weightedRandom(names);
@@ -549,7 +513,6 @@ function handleSuccess() {
   document.body.classList.add("successFlash");
   successText.style.opacity = 1;
 
-  // Confetti burst
   for (let i = 0; i < 40; i++) {
     const c = document.createElement("div");
     c.classList.add("confetti");
@@ -569,9 +532,7 @@ function handleSuccess() {
   }, 500);
 }
 
-/* ============================================================
-   TRAIT SHOP LOGIC
-   ============================================================ */
+/* TRAIT SHOP */
 
 traitBtn.addEventListener("click", () => {
   traitModal.style.display = "block";
@@ -598,9 +559,22 @@ traitRollBtn.addEventListener("click", () => {
   modalCoins.textContent = coins;
 });
 
-/* ============================================================
-   PRESTIGE SYSTEM
-   ============================================================ */
+/* COOLDOWN UPGRADE */
+
+cooldownUpgradeBtn.addEventListener("click", () => {
+  if (coins < cooldownUpgradeCost) return;
+
+  coins -= cooldownUpgradeCost;
+
+  cooldownLevel++;
+  cooldownTime = Math.max(0.5, cooldownTime - 0.1);
+  cooldownUpgradeCost = Math.floor(cooldownUpgradeCost * 1.5);
+
+  saveData();
+  updateUI();
+});
+
+/* PRESTIGE */
 
 prestigeBtn.addEventListener("click", () => {
   prestigeMultiplier *= 2;
@@ -613,11 +587,9 @@ prestigeBtn.addEventListener("click", () => {
   updateUI();
 });
 
-/* ============================================================
-   SCRIPT FINALIZATION
-   ============================================================ */
+/* FINAL */
 
 console.log("System loaded successfully.");
 </script>
+
 </body>
-</html>
